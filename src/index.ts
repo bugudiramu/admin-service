@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import cors from 'cors';
 import connectToDB from './db/dbConfig';
 import authRoutes from './routes/authRoutes';
+import categoryRoutes from './routes/categoryRoutes';
 
 // * Loading Environment variables
 dotenv.config();
@@ -12,10 +13,12 @@ const main = async () => {
 
   // * Defining Middlewares
   app.use(cors());
+  app.use(express.json());
 
   // * Defining Routes
   app.get('/api', (req: Request, res: Response) => res.json({ message: 'success' }));
   app.use('/api', authRoutes);
+  app.use('/api', categoryRoutes);
 
   // * Defining DB Connection
   await connectToDB();
