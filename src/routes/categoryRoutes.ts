@@ -1,40 +1,52 @@
-import express, { Request, Response } from 'express';
-import Categories from '../models/categories';
-import { v4 as uuidv4 } from 'uuid';
-import getCurrentTimeStamp from '../utils/currentTimeStamp';
+import express, { Request, Response, NextFunction } from 'express';
+import Categories from '../models/categories.schema';
+import { routes } from './routes';
+import { IInputCategory, IOutputCategory } from '../types/categories/categories.interface';
+import capitalizeFirstLetter from '../utils/capitalizeFirstLetter.utils';
+import getCurrentTimeStamp from '../utils/currentTimeStamp.utils';
 
 const router = express.Router();
 
 // * Create Category
-router.post('/categories', async (req: Request, res: Response) => {
-  const { title, description, image } = req.body;
+router.post(routes.v1.createCategory, async (req: Request, res: Response) => {
+  const { title, image } = req.body;
 
   try {
-    const category_id: string = uuidv4();
-    const created_at: Date = getCurrentTimeStamp();
+    const convertedTitle = capitalizeFirstLetter(title as string);
+    const checkIsCategoryExistis = await Categories.findOne({ title: convertedTitle });
+    if (checkIsCategoryExistis) return res.status(409).json({ success: false, error: { message: 'Category with current name already exists...' } });
 
-    const createCategory = new Categories({ category_id, title, description, image, created_at, isDeleted: false });
-    const category: Promise<object> = await createCategory.save();
+    const createdAt: string = getCurrentTimeStamp();
 
-    return res.status(200).json({ success: true, message: 'Category created...', category });
+    const inputBody: IInputCategory = {
+      title: convertedTitle,
+      image,
+      createdAt,
+      isDeleted: false,
+    };
+
+    const createCategory = new Categories(inputBody);
+    const category: IOutputCategory = await createCategory.save();
+
+    return res.status(201).json({ success: true, message: 'Category created...', category });
   } catch (err) {
-    return res.status(500).json({ success: false, error: { message: 'Internal Server Error...' } });
+    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
   }
 });
 
 // * Get All Categories
-router.get('/categories', async (req: Request, res: Response) => {
+router.get(routes.v1.getAllCategories, async (req: Request, res: Response) => {
   try {
-    const categories: Array<object> = await Categories.find({ isDeleted: false });
+    const categories: Array<IOutputCategory> = await Categories.find();
 
     return res.status(200).json({ success: true, categories });
   } catch (err) {
-    return res.status(500).json({ success: false, error: { message: 'Internal Server Error...' } });
+    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
   }
 });
 
 // * Get Category by Id
-router.get('/categories/:id', async (req: Request, res: Response) => {
+router.get(routes.v1.getCategoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
 
   if (!id) {
@@ -42,59 +54,63 @@ router.get('/categories/:id', async (req: Request, res: Response) => {
   }
 
   try {
-    const category = await Categories.findOne({ category_id: id, isDeleted: false });
+    const category: IOutputCategory = await Categories.findById(id);
 
     if (!category) return res.status(404).json({ success: false, error: { message: 'Invalid id provided...' } });
 
     return res.status(200).json({ success: true, category });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: { message: 'Internal Server Error...' } });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: 'Something went wrong...', err } });
   }
 });
 
 // * Update Category by Id
-router.put('/categories/:id', async (req: Request, res: Response) => {
+router.put(routes.v1.updateCategoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
-  const updatedData = req.body;
+  const body = req.body;
+
   if (!id) {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });
   }
-  const updated_at: Date = getCurrentTimeStamp();
+
   try {
-    const category = await Categories.findOne({ category_id: id, isDeleted: false });
+    const category = await Categories.findById(id);
     if (!category) {
       return res.status(404).json({ success: false, error: { message: 'Invalid category id...' } });
     }
 
-    await Categories.findOneAndUpdate({ category_id: id }, { ...updatedData, updated_at });
-    const updatedCategoryData = await Categories.findOne({ category_id: id });
+    const updatedAt: string = getCurrentTimeStamp();
+    const dataToUpdate: IInputCategory = {
+      ...body,
+      updatedAt,
+    };
 
-    return res.status(200).json({ success: true, message: 'Category updated...', category: updatedCategoryData });
+    Categories.findOneAndUpdate({ _id: id }, dataToUpdate)
+      .then((result: any) => res.status(200).json({ success: true, message: 'Category updated...' }))
+      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
   } catch (err) {
-    return res.status(500).json({ success: false, error: { message: 'Internal Server Error...' } });
+    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' }, err });
   }
 });
 
 // * Deleting a Category
-router.delete('/categories/:id', async (req: Request, res: Response) => {
+router.delete(routes.v1.deleteCategoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!id) {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });
   }
-  const deleted_at: Date = getCurrentTimeStamp();
   try {
-    const category = await Categories.findOne({ category_id: id, isDeleted: false });
+    const category: IOutputCategory = await Categories.findById(id);
 
     if (!category) {
       return res.status(404).json({ success: false, error: { message: 'Invalid category id...' } });
     }
 
-    await Categories.findOneAndUpdate({ category_id: id }, { isDeleted: true, updated_at: deleted_at, deleted_at });
-    const updatedCategoryData = await Categories.findOne({ category_id: id });
-
-    return res.status(200).json({ success: true, message: 'Category deleted...', category: updatedCategoryData });
+    Categories.findByIdAndDelete(id)
+      .then((result: any) => res.status(200).json({ success: true, message: 'Category deleted...' }))
+      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
   } catch (err) {
-    return res.status(500).json({ success: false, error: { message: 'Internal Server Error...' } });
+    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
   }
 });
 
