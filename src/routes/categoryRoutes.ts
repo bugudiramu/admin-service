@@ -8,7 +8,7 @@ import getCurrentTimeStamp from '../utils/currentTimeStamp.utils';
 const router = express.Router();
 
 // * Create Category
-router.post(routes.v1.createCategory, async (req: Request, res: Response) => {
+router.post(routes.v1.categories, async (req: Request, res: Response) => {
   const { title, image } = req.body;
 
   try {
@@ -35,7 +35,7 @@ router.post(routes.v1.createCategory, async (req: Request, res: Response) => {
 });
 
 // * Get All Categories
-router.get(routes.v1.getAllCategories, async (req: Request, res: Response) => {
+router.get(routes.v1.categories, async (req: Request, res: Response) => {
   try {
     const categories: Array<IOutputCategory> = await Categories.find();
 
@@ -46,7 +46,7 @@ router.get(routes.v1.getAllCategories, async (req: Request, res: Response) => {
 });
 
 // * Get Category by Id
-router.get(routes.v1.getCategoryById, async (req: Request, res: Response) => {
+router.get(routes.v1.categoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
 
   if (!id) {
@@ -65,7 +65,7 @@ router.get(routes.v1.getCategoryById, async (req: Request, res: Response) => {
 });
 
 // * Update Category by Id
-router.put(routes.v1.updateCategoryById, async (req: Request, res: Response) => {
+router.put(routes.v1.categoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body;
 
@@ -93,8 +93,8 @@ router.put(routes.v1.updateCategoryById, async (req: Request, res: Response) => 
   }
 });
 
-// * Deleting a Category
-router.delete(routes.v1.deleteCategoryById, async (req: Request, res: Response) => {
+// * Deleting a Category by Id
+router.delete(routes.v1.categoryById, async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!id) {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });

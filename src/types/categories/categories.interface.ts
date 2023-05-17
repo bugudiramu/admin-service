@@ -1,6 +1,4 @@
-export interface IInputCategory {
-  title: string;
-  image?: string;
+interface ICommonFields {
   isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -8,6 +6,11 @@ export interface IInputCategory {
   createdBy?: string;
   updatedBy?: string;
   deltedBy?: string;
+}
+
+export interface IInputCategory extends ICommonFields {
+  title: string;
+  image?: string;
 }
 
 export interface IOutputCategory extends IInputCategory {
