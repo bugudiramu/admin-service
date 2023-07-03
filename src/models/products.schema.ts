@@ -29,7 +29,7 @@ const ProductsSchema = new Schema(
       type: String,
       required: false,
     },
-    inStock: {
+    stock: {
       type: Number,
       required: true,
     },

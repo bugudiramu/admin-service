@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import Products from '../models/products.schema';
 import { IInputProduct, IOutputProduct } from '../types/products/products.interface';
 import getCurrentTimeStamp from '../utils/currentTimeStamp.utils';
+import ProductService from '../services/product.service';
 
 const createProduct = async (req: Request, res: Response) => {
-  const { title, description, price, category, image, inStock } = req.body;
+  const { title, description, price, category, image, tags } = req.body;
 
   try {
     const createdAt: string = getCurrentTimeStamp();
@@ -15,27 +16,27 @@ const createProduct = async (req: Request, res: Response) => {
       price,
       category,
       image,
-      inStock,
+      stock: 1,
       createdAt,
+      tags,
       isDeleted: false,
     };
 
-    const createProduct = new Products(inputBody);
-    const product: IOutputProduct = await createProduct.save();
+    const product = await ProductService.createProduct(inputBody);
 
     return res.status(201).json({ success: true, message: 'Product created...', product });
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err?.message } });
   }
 };
 
 const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const products: Array<IOutputProduct> = await Products.find();
+    const products: Array<IOutputProduct> = await ProductService.allProducts();
 
     return res.status(200).json({ success: true, products });
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err?.message } });
   }
 };
 
@@ -47,15 +48,13 @@ const getProductById = async (req: Request, res: Response) => {
   }
 
   try {
-    const product: IOutputProduct = await Products.findById(id);
-
-    if (!product) return res.status(404).json({ success: false, error: { message: 'Invalid id provided...' } });
-
+    const product: IOutputProduct = await ProductService.productById(id);
     return res.status(200).json({ success: true, product });
   } catch (err: any) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...', err } });
+    return res.status(400).json({ success: false, error: { message: err?.message } });
   }
 };
+
 const updateProductById = async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body;
@@ -65,22 +64,15 @@ const updateProductById = async (req: Request, res: Response) => {
   }
 
   try {
-    const product = await Products.findById(id);
-    if (!product) {
-      return res.status(404).json({ success: false, error: { message: 'Invalid product id...' } });
-    }
-
     const updatedAt: string = getCurrentTimeStamp();
     const dataToUpdate: IInputProduct = {
       ...body,
       updatedAt,
     };
-
-    Products.findOneAndUpdate({ _id: id }, dataToUpdate)
-      .then((result: any) => res.status(200).json({ success: true, message: 'Product updated...' }))
-      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' }, err });
+    const data = await ProductService.updateById(id, dataToUpdate);
+    res.status(200).json({ success: true, message: 'Product updated...', data });
+  } catch (err: any) {
+    return res.status(404).json({ success: false, error: { message: err?.message } });
   }
 };
 
@@ -90,17 +82,10 @@ const deleteProductById = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });
   }
   try {
-    const product: IOutputProduct = await Products.findById(id);
-
-    if (!product) {
-      return res.status(404).json({ success: false, error: { message: 'Invalid category id...' } });
-    }
-
-    Products.findByIdAndDelete(id)
-      .then((result: any) => res.status(200).json({ success: true, message: 'Product deleted...' }))
-      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+    const data = await ProductService.deleteById(id);
+    res.status(200).json({ success: true, message: 'Product deleted...', data });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: { message: err?.message } });
   }
 };
 

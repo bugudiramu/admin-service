@@ -1,32 +1,20 @@
 import { Request, Response } from 'express';
-import Categories from '../models/categories.schema';
 import { IInputCategory, IOutputCategory } from '../types/categories/categories.interface';
-import convertToLowerCase from '../utils/convertToLowerCase';
 import getCurrentTimeStamp from '../utils/currentTimeStamp.utils';
 import CategoryService from '../services/category.service';
+import isValidaInput from '../utils/isValidInput.utils';
 
 const createCategory = async (req: Request, res: Response) => {
   const { title, image } = req.body;
 
+  if (!isValidaInput(title) || !isValidaInput(image)) return res.status(400).json({ success: false, error: { message: 'Invalid input...' } });
+
   try {
-    const convertedTitle = convertToLowerCase(title as string);
-    const checkIsCategoryExistis = await CategoryService.findCategoryByTitle({ title: convertedTitle }, {});
-    if (checkIsCategoryExistis) return res.status(409).json({ success: false, error: { message: 'Category with current name already exists...' } });
-
-    const createdAt: string = getCurrentTimeStamp();
-
-    const inputBody: IInputCategory = {
-      title: convertedTitle,
-      image,
-      createdAt,
-      isDeleted: false,
-    };
-
-    const category: IOutputCategory = await CategoryService.createCategory({}, inputBody);
+    const category: IOutputCategory = await CategoryService.createCategory({ title, image });
 
     return res.status(201).json({ success: true, message: 'Category created...', category });
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err.message } });
   }
 };
 
@@ -35,26 +23,24 @@ const getAllCategories = async (req: Request, res: Response) => {
     const categories: Array<IOutputCategory> = await CategoryService.getCategories();
 
     return res.status(200).json({ success: true, categories });
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err.message } });
   }
 };
 
 const getCategoryById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
-  if (!id) {
+  if (!isValidaInput(id)) {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });
   }
 
   try {
-    const category: IOutputCategory = await CategoryService.categoryById({}, { id });
-
-    if (!category) return res.status(404).json({ success: false, error: { message: 'Invalid id provided...' } });
+    const category: IOutputCategory = await CategoryService.categoryById({ id });
 
     return res.status(200).json({ success: true, category });
   } catch (err: any) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...', err } });
+    return res.status(400).json({ success: false, error: { message: err.message } });
   }
 };
 
@@ -67,22 +53,20 @@ const updateCategoryById = async (req: Request, res: Response) => {
   }
 
   try {
-    const category = await Categories.findById(id);
-    if (!category) {
-      return res.status(404).json({ success: false, error: { message: 'Invalid category id...' } });
-    }
-
+    const category = await CategoryService.categoryById({ id });
     const updatedAt: string = getCurrentTimeStamp();
     const dataToUpdate: IInputCategory = {
       ...body,
       updatedAt,
     };
 
-    Categories.findOneAndUpdate({ _id: id }, dataToUpdate)
-      .then((result: any) => res.status(200).json({ success: true, message: 'Category updated...' }))
-      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' }, err });
+    const updatedCategory = await CategoryService.updateCategoryById({ _id: id }, dataToUpdate);
+    if (updatedCategory) {
+      return res.status(200).json({ success: true, message: 'Category updated...' });
+    }
+    throw new Error('Something went wrong...');
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err.message } });
   }
 };
 
@@ -92,17 +76,14 @@ const deleteCategoryById = async (req: Request, res: Response) => {
     return res.status(404).json({ success: false, error: { message: 'ID not provided...' } });
   }
   try {
-    const category: IOutputCategory = await Categories.findById(id);
+    const deletedCategory = await CategoryService.deleteCategory(id);
 
-    if (!category) {
-      return res.status(404).json({ success: false, error: { message: 'Invalid category id...' } });
+    if (deletedCategory) {
+      return res.status(200).json({ success: true, message: 'Category deleted...' });
     }
-
-    Categories.findByIdAndDelete(id)
-      .then((result: any) => res.status(200).json({ success: true, message: 'Category deleted...' }))
-      .catch((err: any) => res.status(404).json({ success: false, message: err.message }));
-  } catch (err) {
-    return res.status(400).json({ success: false, error: { message: 'Something went wrong...' } });
+    throw new Error('Something went wrong...');
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: { message: err.message } });
   }
 };
 

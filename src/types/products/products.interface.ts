@@ -7,7 +7,7 @@ export interface IInputProduct extends ICommonFields {
   category: string;
   tags?: Array<string>;
   image?: string;
-  inStock: boolean;
+  stock: number;
   rating?: number;
 }
 

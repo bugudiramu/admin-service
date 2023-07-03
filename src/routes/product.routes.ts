@@ -17,6 +17,6 @@ router.get(routes.v1.productById, ProductsController.getProductById);
 router.put(routes.v1.productById, ProductsController.updateProductById);
 
 // * Deleting a Product by Id
-router.delete(routes.v1.categoryById, ProductsController.deleteProductById);
+router.delete(routes.v1.productById, ProductsController.deleteProductById);
 
 export default router;
