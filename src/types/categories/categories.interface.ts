@@ -1,12 +1,4 @@
-interface ICommonFields {
-  isDeleted?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string;
-  createdBy?: string;
-  updatedBy?: string;
-  deltedBy?: string;
-}
+import { ICommonFields } from '../common.interface';
 
 export interface IInputCategory extends ICommonFields {
   title: string;

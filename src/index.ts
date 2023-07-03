@@ -2,8 +2,9 @@ import express, { Request, Response, Express } from 'express';
 import * as dotenv from 'dotenv';
 import cors from 'cors';
 import connectToDB from './db/dbConfig';
-import authRoutes from './routes/authRoutes';
-import categoryRoutes from './routes/categoryRoutes';
+import authRoutes from './routes/auth.routes';
+import categoryRoutes from './routes/category.routes';
+import productRoutes from './routes/product.routes';
 import morgon from 'morgan';
 
 // * Loading Environment variables
@@ -21,6 +22,7 @@ const main = async () => {
   app.get('/api', (req: Request, res: Response) => res.json({ message: 'success' }));
   app.use('/api', authRoutes);
   app.use('/api', categoryRoutes);
+  app.use('/api', productRoutes);
 
   // * Defining DB Connection
   await connectToDB();
